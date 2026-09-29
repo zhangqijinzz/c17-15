@@ -139,8 +139,13 @@ export class StoryViewModel {
       this.setState({ notice: cleanTitle });
       return;
     }
-    if (!setupSceneId) {
+    const visibleSceneIds = new Set(this.visibleScenes.map((scene) => scene.id));
+    if (!setupSceneId || !visibleSceneIds.has(setupSceneId)) {
       this.setState({ notice: '请先选择伏笔埋下的场景' });
+      return;
+    }
+    if (payoffSceneId && !visibleSceneIds.has(payoffSceneId)) {
+      this.setState({ notice: '回收场景已不在当前列表中，请重新选择' });
       return;
     }
     const clue: StoryClue = { id: createId('clue'), title: cleanTitle, setupSceneId, payoffSceneId };

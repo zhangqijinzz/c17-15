@@ -33,4 +33,35 @@ describe('story view model', () => {
     viewModel.resetProject();
     expect(viewModel.snapshot.story?.id).toBe(createStarterStory().id);
   });
+
+  it('creates clues only for scenes currently visible in the list', () => {
+    const viewModel = new StoryViewModel(new LocalStoryRepository(new MemoryStorageService()));
+    viewModel.initialize();
+    const [firstScene, secondScene] = viewModel.snapshot.story!.scenes;
+
+    viewModel.setSearch(firstScene.title);
+    viewModel.addClue('罗盘上的刻痕', firstScene.id, '');
+    expect(viewModel.snapshot.story?.clues.some((clue) => clue.title === '罗盘上的刻痕')).toBe(true);
+
+    viewModel.addClue('铜钥匙', secondScene.id, firstScene.id);
+    expect(viewModel.snapshot.notice).toContain('埋下');
+    expect(viewModel.snapshot.story?.clues.some((clue) => clue.title === '铜钥匙')).toBe(false);
+
+    viewModel.addClue('铜钥匙', firstScene.id, secondScene.id);
+    expect(viewModel.snapshot.notice).toContain('回收');
+    expect(viewModel.snapshot.story?.clues.some((clue) => clue.title === '铜钥匙')).toBe(false);
+  });
+
+  it('keeps clues intact and findable after narrowing the scene search', () => {
+    const viewModel = new StoryViewModel(new LocalStoryRepository(new MemoryStorageService()));
+    viewModel.initialize();
+    const [firstScene, secondScene] = viewModel.snapshot.story!.scenes;
+    viewModel.addClue('罗盘上的刻痕', firstScene.id, secondScene.id);
+
+    viewModel.setSearch(secondScene.title);
+    expect(viewModel.visibleScenes.map((scene) => scene.id)).toEqual([secondScene.id]);
+    const clue = viewModel.snapshot.story?.clues.find((item) => item.title === '罗盘上的刻痕');
+    expect(clue?.setupSceneId).toBe(firstScene.id);
+    expect(viewModel.snapshot.story?.scenes.find((scene) => scene.id === clue!.setupSceneId)?.title).toBe(firstScene.title);
+  });
 });
