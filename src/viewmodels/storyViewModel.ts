@@ -139,15 +139,24 @@ export class StoryViewModel {
       this.setState({ notice: cleanTitle });
       return;
     }
+    const story = this.requireStory();
     if (!setupSceneId) {
       this.setState({ notice: '请先选择伏笔埋下的场景' });
       return;
     }
+    if (!story.scenes.some((scene) => scene.id === setupSceneId)) {
+      this.setState({ notice: '埋下场景已失效，请重新选择' });
+      return;
+    }
+    if (payoffSceneId && !story.scenes.some((scene) => scene.id === payoffSceneId)) {
+      this.setState({ notice: '回收场景已失效，请重新选择' });
+      return;
+    }
     const clue: StoryClue = { id: createId('clue'), title: cleanTitle, setupSceneId, payoffSceneId };
-    this.updateStory((story) => ({
-      ...story,
-      clues: [...story.clues, clue],
-      scenes: story.scenes.map((scene) => scene.id === setupSceneId ? { ...scene, clueIds: [...scene.clueIds, clue.id] } : scene),
+    this.updateStory((current) => ({
+      ...current,
+      clues: [...current.clues, clue],
+      scenes: current.scenes.map((scene) => scene.id === setupSceneId ? { ...scene, clueIds: [...scene.clueIds, clue.id] } : scene),
     }));
     this.setState({ notice: payoffSceneId ? '伏笔关系已建立' : '伏笔已记录，等待回收' });
   }

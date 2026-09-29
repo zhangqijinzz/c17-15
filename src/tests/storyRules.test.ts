@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createStarterStory } from '../models/story';
-import { getStats, getTimelineWarning, orderedScenes, sanitizeStory, validateName } from '../models/storyRules';
+import { getStats, getTimelineWarning, orderedScenes, reconcileSceneSelection, sanitizeStory, validateName } from '../models/storyRules';
 
 describe('story domain rules', () => {
   it('sorts scenes and calculates unresolved clues', () => {
@@ -21,5 +21,18 @@ describe('story domain rules', () => {
     expect(sanitizeStory('{bad json}')).toBeNull();
     expect(sanitizeStory({ version: 99 })).toBeNull();
     expect(sanitizeStory(createStarterStory())).not.toBeNull();
+  });
+
+  it('reconciles the selected scene with the visible list', () => {
+    const story = createStarterStory();
+    const [a, b] = story.scenes;
+    // 当前选中项仍可见 → 保留
+    expect(reconcileSceneSelection(a.id, [a, b], b.id)).toBe(a.id);
+    // 当前选中项被过滤掉 → 收敛到第一个可见场景
+    expect(reconcileSceneSelection(a.id, [b], b.id)).toBe(b.id);
+    // 当前选中项被过滤掉且没有可见场景 → 清空
+    expect(reconcileSceneSelection(a.id, [], '')).toBe('');
+    // 当前是显式空值（占位项）→ 保留空值，不覆盖
+    expect(reconcileSceneSelection('', [a, b], a.id)).toBe('');
   });
 });

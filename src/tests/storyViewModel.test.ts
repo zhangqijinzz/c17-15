@@ -33,4 +33,27 @@ describe('story view model', () => {
     viewModel.resetProject();
     expect(viewModel.snapshot.story?.id).toBe(createStarterStory().id);
   });
+
+  it('rejects clues whose setup or payoff scene no longer exists', () => {
+    const repository = new LocalStoryRepository(new MemoryStorageService());
+    const viewModel = new StoryViewModel(repository);
+    viewModel.initialize();
+    const story = viewModel.snapshot.story!;
+    const missingSceneId = 'scene-does-not-exist';
+
+    // 埋下场景已失效 → 拒绝提交，伏笔数不变
+    viewModel.addClue('罗盘上的刻痕', missingSceneId, '');
+    expect(viewModel.snapshot.notice).toContain('埋下场景已失效');
+    expect(viewModel.snapshot.story?.clues).toHaveLength(story.clues.length);
+
+    // 回收场景已失效 → 拒绝提交，伏笔数不变
+    viewModel.addClue('罗盘上的刻痕', story.scenes[0].id, missingSceneId);
+    expect(viewModel.snapshot.notice).toContain('回收场景已失效');
+    expect(viewModel.snapshot.story?.clues).toHaveLength(story.clues.length);
+
+    // 场景都有效 → 正常建立关系
+    viewModel.addClue('罗盘上的刻痕', story.scenes[0].id, story.scenes[1].id);
+    expect(viewModel.snapshot.notice).toContain('伏笔关系已建立');
+    expect(viewModel.snapshot.story?.clues).toHaveLength(story.clues.length + 1);
+  });
 });
